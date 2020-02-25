@@ -72,10 +72,13 @@ def writeOnXlsxFile(row, column, field, workbook):
 def closeXlsxFile(file):
     file.close()
 
-async def renderChildPage(aSession, link):
+async def renderChildPage(link):
+    miniSession = AsyncHTMLSession()
+    h = await miniSession.get(link)
+    await h.html.arender(timeout=15, sleep=10)
+    await miniSession.close()
+    print(h)
     print(link)
-    h = await aSession.get(link)
-    await h.html.arender(sleep=10)
     return h
 
 async def scrapWebsite(page):
@@ -87,8 +90,7 @@ async def scrapWebsite(page):
     workbook = openXlsxFile(f'vacantes_{page}.xlsx')
 
     #Async approach 
-    aSession = AsyncHTMLSession()
-    coros = [renderChildPage(aSession, (f'https://www.occ.com.mx{link}')) for link in links]
+    coros = [renderChildPage((f'https://www.occ.com.mx{link}')) for link in links]
     results = await asyncio.gather(*coros)
     print(results)
 
