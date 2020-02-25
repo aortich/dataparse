@@ -1,7 +1,8 @@
 from requests_html import HTMLSession
+from requests_html import AsyncHTMLSession
 import xlsxwriter
 import argparse
-
+import asyncio
 
 #column indexes
 NUMERO = 0
@@ -71,17 +72,25 @@ def writeOnXlsxFile(row, column, field, workbook):
 def closeXlsxFile(file):
     file.close()
 
-async def getAbsoluteLink(session, link):
-    h = await session.get(link)
+async def renderChildPage(aSession, link):
+    print(link)
+    h = await aSession.get(link)
+    await h.html.arender(sleep=10)
     return h
 
-def scrapWebsite(page):
+async def scrapWebsite(page):
     session = HTMLSession()
     r = session.get(f'https://www.occ.com.mx/empleos/trabajo-en-tecnologias-de-la-informacion-sistemas/?page={page}')
     links = list(filter(lambda x: "oferta" in x, r.html.links))
     session.close()
 
     workbook = openXlsxFile(f'vacantes_{page}.xlsx')
+
+    #Async approach 
+    aSession = AsyncHTMLSession()
+    coros = [renderChildPage(aSession, (f'https://www.occ.com.mx{link}')) for link in links]
+    results = await asyncio.gather(*coros)
+    print(results)
 
     row = 2
     for link in links:
@@ -174,7 +183,7 @@ def main():
 
     print(page)
     
-    scrapWebsite(page)
+    asyncio.run(scrapWebsite(page))
     #writeXlsxFile()
 
 
